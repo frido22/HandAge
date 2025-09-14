@@ -121,7 +121,8 @@ def predict():
 
 if __name__ == '__main__':
     print("Starting Hand Age Predictor Web App...")
-    print(f"Model loaded on device: {device}")
+    print(f"Model will be loaded on first prediction request")
+    print(f"Running on device: {device}")
     
     # Use environment variables for production deployment
     port = int(os.environ.get('PORT', 8080))

@@ -1,0 +1,19 @@
+name: handage-app
+region: nyc
+services:
+- environment_slug: python
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: frido22/HandAge
+  name: web
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 8080
+  source_dir: /
+  run_command: gunicorn --worker-class=sync --workers=2 --threads=1 --timeout=120 --bind=0.0.0.0:8080 app:app
+  envs:
+  - key: FLASK_ENV
+    value: production
+  - key: PORT
+    value: "8080"
