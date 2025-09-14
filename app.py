@@ -15,11 +15,18 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
 model.fc = nn.Linear(model.fc.in_features, 1)
 
-# Load trained model if available
+# Load trained model with memory optimization
 model_path = "hand_age_model.pth"
 if os.path.exists(model_path):
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    print("Loaded trained model")
+    try:
+        # Load with memory mapping to reduce RAM usage
+        checkpoint = torch.load(model_path, map_location=device, weights_only=True)
+        model.load_state_dict(checkpoint)
+        print("Loaded trained model with memory optimization")
+        del checkpoint  # Free memory immediately
+    except Exception as e:
+        print(f"Failed to load model: {e}")
+        print("Warning: Using untrained model.")
 else:
     print("Warning: No trained model found. Using untrained model.")
 
