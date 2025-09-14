@@ -30,3 +30,6 @@ Thumbs.db
 # Temporary files
 uploads/
 temp/
+
+# Downloaded model weights
+hand_age_model.pth

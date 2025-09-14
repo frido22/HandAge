@@ -15,20 +15,40 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
 model.fc = nn.Linear(model.fc.in_features, 1)
 
-# Load trained model with memory optimization
-model_path = "hand_age_model.pth"
-if os.path.exists(model_path):
+# Download and load model from external source
+import urllib.request
+import urllib.error
+
+def download_model():
+    # Use Google Drive direct download URL
+    model_url = "https://drive.google.com/uc?export=download&id=1lxO21HJ_gIYepdyvSuKvg9ukwPHH9SqH"
+    model_path = "hand_age_model.pth"
+    
+    if not os.path.exists(model_path):
+        print("Downloading model weights...")
+        try:
+            urllib.request.urlretrieve(model_url, model_path)
+            print("Model downloaded successfully")
+            return True
+        except urllib.error.URLError as e:
+            print(f"Failed to download model: {e}")
+            return False
+    else:
+        print("Model already exists locally")
+        return True
+
+# Load trained model
+if download_model():
     try:
-        # Load with memory mapping to reduce RAM usage
-        checkpoint = torch.load(model_path, map_location=device, weights_only=True)
+        checkpoint = torch.load("hand_age_model.pth", map_location=device, weights_only=True)
         model.load_state_dict(checkpoint)
-        print("Loaded trained model with memory optimization")
-        del checkpoint  # Free memory immediately
+        print("Loaded trained model")
+        del checkpoint
     except Exception as e:
         print(f"Failed to load model: {e}")
         print("Warning: Using untrained model.")
 else:
-    print("Warning: No trained model found. Using untrained model.")
+    print("Warning: Using untrained model - model download failed.")
 
 model.eval()
 model = model.to(device)
