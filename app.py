@@ -20,8 +20,8 @@ import urllib.request
 import urllib.error
 
 def download_model():
-    # Use Google Drive direct download URL
-    model_url = "https://drive.google.com/uc?export=download&id=1lxO21HJ_gIYepdyvSuKvg9ukwPHH9SqH"
+    # Use Dropbox direct download URL (change dl=0 to dl=1)
+    model_url = "https://www.dropbox.com/scl/fi/qjgnejdirb3y9i78mbrgs/hand_age_model.pth?rlkey=rno02w0f1pjw7lxrg1a7p64vb&st=auesaza9&dl=1"
     model_path = "hand_age_model.pth"
     
     if not os.path.exists(model_path):
@@ -40,7 +40,7 @@ def download_model():
 # Load trained model
 if download_model():
     try:
-        checkpoint = torch.load("hand_age_model.pth", map_location=device, weights_only=True)
+        checkpoint = torch.load("hand_age_model.pth", map_location=device, weights_only=False)
         model.load_state_dict(checkpoint)
         print("Loaded trained model")
         del checkpoint
