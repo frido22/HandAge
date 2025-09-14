@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Age Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .upload-section, .camera-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .upload-section:hover, .camera-section:hover {
+            border-color: #4CAF50;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-label {
+            background-color: #008CBA;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            margin: 10px;
+        }
+        .file-label:hover {
+            background-color: #007B9A;
+        }
+        video, canvas {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e8f5e8;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        .error {
+            background-color: #ffe8e8;
+            color: #cc0000;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .preview-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤚 Hand Age Predictor</h1>
+        
+        <div class="upload-section">
+            <h3>Upload a Hand Photo</h3>
+            <p>Choose a clear photo of the back (dorsal) of your hand</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <label for="fileInput" class="file-label">Choose File</label>
+            <div id="filePreview"></div>
+        </div>
+
+        <div class="camera-section">
+            <h3>Or Use Your Camera</h3>
+            <p>Take a photo of the back of your hand</p>
+            <video id="video" width="320" height="240" style="display: none;"></video>
+            <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
+            <div>
+                <button id="startCamera">Start Camera</button>
+                <button id="capturePhoto" style="display: none;">Capture Photo</button>
+                <button id="retakePhoto" style="display: none;">Retake</button>
+            </div>
+            <div id="cameraPreview"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>Analyzing your hand photo... 🔍</p>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const filePreview = document.getElementById('filePreview');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const startCameraBtn = document.getElementById('startCamera');
+        const captureBtn = document.getElementById('capturePhoto');
+        const retakeBtn = document.getElementById('retakePhoto');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+
+        let stream = null;
+
+        // File upload handling
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    filePreview.innerHTML = `<img src="${e.target.result}" class="preview-image" alt="Hand preview">
+                                           <br><button onclick="predictAge('${e.target.result}')">Predict Age</button>`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Camera handling
+        startCameraBtn.addEventListener('click', async function() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 320, 
+                        height: 240,
+                        facingMode: 'user'
+                    } 
+                });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                video.play();
+                startCameraBtn.style.display = 'none';
+                captureBtn.style.display = 'inline-block';
+            } catch (err) {
+                alert('Camera access denied or not available');
+            }
+        });
+
+        captureBtn.addEventListener('click', function() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg');
+            cameraPreview.innerHTML = `<img src="${imageData}" class="preview-image" alt="Captured hand">
+                                     <br><button onclick="predictAge('${imageData}')">Predict Age</button>`;
+            
+            video.style.display = 'none';
+            captureBtn.style.display = 'none';
+            retakeBtn.style.display = 'inline-block';
+        });
+
+        retakeBtn.addEventListener('click', function() {
+            video.style.display = 'block';
+            captureBtn.style.display = 'inline-block';
+            retakeBtn.style.display = 'none';
+            cameraPreview.innerHTML = '';
+        });
+
+        // Predict age function
+        async function predictAge(imageData) {
+            loading.style.display = 'block';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <h3>🎯 Prediction Result</h3>
+                        <p><strong>Estimated Age: ${Math.round(data.age)} years</strong></p>
+                        <p><small>This is an AI estimate based on hand features</small></p>
+                    `;
+                    result.className = 'result';
+                } else {
+                    result.innerHTML = `<h3>❌ Error</h3><p>${data.error}</p>`;
+                    result.className = 'result error';
+                }
+            } catch (error) {
+                result.innerHTML = `<h3>❌ Error</h3><p>Failed to process image. Please try again.</p>`;
+                result.className = 'result error';
+            }
+
+            loading.style.display = 'none';
+            result.style.display = 'block';
+        }
+
+        // Stop camera when page unloads
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
