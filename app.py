@@ -15,40 +15,39 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
 model.fc = nn.Linear(model.fc.in_features, 1)
 
-# Download and load model from external source
-import urllib.request
-import urllib.error
+# Global model loading flag
+model_loaded = False
 
-def download_model():
-    # Use Dropbox direct download URL (change dl=0 to dl=1)
-    model_url = "https://www.dropbox.com/scl/fi/qjgnejdirb3y9i78mbrgs/hand_age_model.pth?rlkey=rno02w0f1pjw7lxrg1a7p64vb&st=auesaza9&dl=1"
+def load_model_if_needed():
+    global model_loaded
+    if model_loaded:
+        return True
+        
     model_path = "hand_age_model.pth"
     
+    # Try to download if not exists
     if not os.path.exists(model_path):
-        print("Downloading model weights...")
+        print("Downloading model weights (this may take a moment)...")
         try:
+            import urllib.request
+            model_url = "https://www.dropbox.com/scl/fi/qjgnejdirb3y9i78mbrgs/hand_age_model.pth?rlkey=rno02w0f1pjw7lxrg1a7p64vb&st=auesaza9&dl=1"
             urllib.request.urlretrieve(model_url, model_path)
             print("Model downloaded successfully")
-            return True
-        except urllib.error.URLError as e:
+        except Exception as e:
             print(f"Failed to download model: {e}")
             return False
-    else:
-        print("Model already exists locally")
-        return True
-
-# Load trained model
-if download_model():
+    
+    # Load the model
     try:
-        checkpoint = torch.load("hand_age_model.pth", map_location=device, weights_only=False)
+        checkpoint = torch.load(model_path, map_location=device, weights_only=False)
         model.load_state_dict(checkpoint)
-        print("Loaded trained model")
+        print("Model loaded successfully")
         del checkpoint
+        model_loaded = True
+        return True
     except Exception as e:
         print(f"Failed to load model: {e}")
-        print("Warning: Using untrained model.")
-else:
-    print("Warning: Using untrained model - model download failed.")
+        return False
 
 model.eval()
 model = model.to(device)
@@ -63,6 +62,10 @@ transform = transforms.Compose([
 def predict_age_from_image(image):
     """Predict age from PIL Image"""
     try:
+        # Ensure model is loaded
+        if not load_model_if_needed():
+            raise Exception("Model not available - using untrained weights")
+            
         # Convert to RGB if needed
         if image.mode != 'RGB':
             image = image.convert('RGB')

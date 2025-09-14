@@ -3,7 +3,7 @@ services:
     name: handage-app
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --timeout 300 --workers 1 --max-requests 100 --max-requests-jitter 10
+    startCommand: gunicorn app:app --timeout 600 --workers 1 --max-requests 50 --max-requests-jitter 5 --preload
     plan: free
     envVars:
       - key: FLASK_ENV
